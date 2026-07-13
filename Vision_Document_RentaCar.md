@@ -1,4 +1,4 @@
-# Vision Document for "RentaCar - Car Rental Management System"
+# Vision Document for "AI Assisted RentaCar - Car Rental Management System"
 
 Mariam Natukunda
 618983
@@ -18,11 +18,13 @@ must quickly determine which vehicles are available for a given date range, proc
 bookings efficiently, and ensure that no vehicle is double-booked. Customers expect
 a convenient way to browse available vehicles and make reservations online, at any time.
 
-RentaCar is a new web-based software system that will provide a centralized platform
-for managing all aspects of a car rental business: fleet inventory, customer accounts,
-reservations, vehicle check-out and return processing, and billing. The system will
-serve three types of users — administrators, counter staff, and customers — each with
-their own role-specific interface and privileges.
+AI Assisted RentaCar is a new web-based software system that will provide a centralized
+platform for managing all aspects of a car rental business: fleet inventory, customer
+accounts, reservations, vehicle check-out and return processing, and billing. The
+system also offers customers a simple AI-assisted vehicle recommendation to help them
+pick a suitable vehicle for their trip. The system will serve three types of users —
+administrators, counter staff, and customers — each with their own role-specific
+interface and privileges.
 
 ---
 
@@ -35,7 +37,7 @@ their own role-specific interface and privileges.
 | The problem of | managing vehicle fleet availability, customer reservations, and rental billing |
 | Affects | rental business administrators, counter staff, and customers |
 | the impact of which is | double bookings, inaccurate availability information, slow check-in/check-out processes, and inconsistent billing |
-| a successful solution would be | one integrated system that manages vehicle inventory, automates availability checking, processes reservations and returns, and generates accurate bills — with a user-friendly interface accessible to administrators, staff, and customers |
+| a successful solution would be | one integrated system that manages vehicle inventory, automates availability checking, processes reservations and returns, and generates accurate bills — with a user-friendly interface accessible to administrators, staff, and customers, and a simple AI-assisted recommendation to help customers pick the right vehicle |
 
 ### 2.2 Product Position Statement
 
@@ -43,10 +45,10 @@ their own role-specific interface and privileges.
 |---|---|
 | For | car rental businesses and their customers |
 | Who | need an efficient and reliable way to manage vehicle reservations and fleet operations |
-| The (RentaCar) is | a web-based car rental management application |
-| That | automates the full rental lifecycle from reservation to return, with real-time availability checking and automated billing |
+| The (AI Assisted RentaCar) is | a web-based car rental management application |
+| That | automates the full rental lifecycle from reservation to return, with real-time availability checking, automated billing, and a simple AI-assisted vehicle recommendation |
 | Unlike | manual spreadsheet tracking or fragmented paper-based processes |
-| Our product | provides a single integrated platform accessible to admins, staff, and customers with role-based access control and a shared database |
+| Our product | provides a single integrated platform accessible to admins, staff, and customers with role-based access control, a shared database, and a lightweight AI-assisted recommendation that helps customers pick a suitable vehicle |
 
 ---
 
@@ -59,7 +61,7 @@ their own role-specific interface and privileges.
 | Admin | Admins configure and manage the system, including the vehicle fleet, pricing, and user accounts | Admins are responsible for adding, editing, or removing vehicles and vehicle categories; setting pricing; creating staff and customer accounts; and overseeing overall system data |
 | Counter Staff | Staff handle in-person customer interactions at the rental location | Staff are responsible for verifying customer reservations, processing vehicle check-outs, recording vehicle returns, and confirming billing |
 | Customers | Customers browse available vehicles and make or manage their own reservations online | Customers are responsible for providing accurate personal information, selecting a vehicle and date range, and returning vehicles on time |
-| Developers | Developers build and maintain the RentaCar system | Developers are responsible for implementing system features, fixing bugs, and maintaining system availability |
+| Developers | Developers build and maintain the AI Assisted RentaCar system | Developers are responsible for implementing system features, fixing bugs, and maintaining system availability |
 | Testers | Testers validate system functionality using JUnit and integration testing tools | Testers are responsible for verifying that all features work correctly and that business rules are properly enforced |
 
 ### 3.2 User Environment
@@ -74,7 +76,7 @@ The system will be used across three contexts:
 - **Customers** will access the system from any device (desktop, mobile, or tablet)
   via a web browser, primarily to make reservations before visiting the rental location.
 
-- **Platform**: RentaCar is a web application built on Java with Spring MVC and JPA
+- **Platform**: AI Assisted RentaCar is a web application built on Java with Spring MVC and JPA
   for database persistence. It will be deployed on a Java-compatible application server
   and accessed through modern web browsers. No dedicated mobile app is required for
   the initial release.
@@ -89,13 +91,14 @@ internally by the system.
 
 ### 4.1 Product Perspective
 
-RentaCar is a standalone web application with a relational database backend.
-It consists of three major subsystems:
+AI Assisted RentaCar is a standalone web application with a relational database
+backend. It consists of three major subsystems:
 
 - **Fleet Management Subsystem**: Manages the vehicle inventory, categories, and
   pricing configuration.
 - **Reservation Subsystem**: Handles bookings, real-time availability checking,
-  and scheduling constraints.
+  scheduling constraints, and a simple AI-assisted recommendation that suggests
+  a suitable vehicle to a customer based on their stated trip needs.
 - **Customer & Billing Subsystem**: Manages customer accounts and generates
   rental bills upon vehicle return.
 
@@ -115,6 +118,9 @@ and customers.
 - Pricing is defined per vehicle category and calculated based on the number of
   rental days.
 - The system will support a single rental location for the initial release.
+- The vehicle recommendation is generated using simple rule-based filtering
+  (e.g., passenger count, budget, vehicle category) rather than a trained
+  machine learning model or third-party AI service.
 
 ### 4.3 Needs and Features
 
@@ -138,9 +144,11 @@ and customers.
 | **Billing** | | | | | |
 | 13 | Rentals must be charged based on the number of days and vehicle category | The system must calculate the rental cost automatically | High | The system must calculate the total rental cost upon vehicle return: daily rate × number of days rented | |
 | 14 | Customers and staff need a record of the transaction | A bill must be generated at the end of each rental | Medium | The system must generate a billing summary for each completed rental, showing vehicle details, rental dates, number of days, daily rate, and total amount due | |
+| **AI-Assisted Features** | | | | | |
+| 15 | Customers may not know which vehicle category best fits their trip | Customers need guidance choosing a suitable vehicle | Low | The system must recommend a vehicle to a customer based on simple inputs such as passenger count and budget, using rule-based filtering over available vehicles | |
 | **System** | | | | | |
-| 15 | All vehicles must be accounted for at all times | No vehicle should have an unknown status | High | The system must track vehicle status at all times: Available, Reserved, Rented, or Under Maintenance | |
-| 16 | Admins need an overview of business activity | Summary reports are needed for decision-making | Low | The system must provide admins with a basic dashboard showing fleet status, active rentals, and upcoming reservations | |
+| 16 | All vehicles must be accounted for at all times | No vehicle should have an unknown status | High | The system must track vehicle status at all times: Available, Reserved, Rented, or Under Maintenance | |
+| 17 | Admins need an overview of business activity | Summary reports are needed for decision-making | Low | The system must provide admins with a basic dashboard showing fleet status, active rentals, and upcoming reservations | |
 
 ### 4.4 Alternatives and Competition
 
@@ -155,9 +163,11 @@ Alternatives available to a car rental business include:
   of car rental (e.g., vehicle check-out/check-in, condition tracking, fleet
   categorization).
 
-RentaCar differentiates itself by offering a purpose-built, lightweight, and
-customizable system aligned to the specific needs of a car rental operation,
-built on an open-source Java stack with no licensing overhead.
+AI Assisted RentaCar differentiates itself by offering a purpose-built, lightweight,
+and customizable system aligned to the specific needs of a car rental operation,
+built on an open-source Java stack with no licensing overhead. It also gives
+customers a simple AI-assisted vehicle recommendation, which most spreadsheet-based
+and commercial alternatives do not offer.
 
 ---
 
