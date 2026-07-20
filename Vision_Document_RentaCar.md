@@ -76,10 +76,10 @@ The system will be used across three contexts:
 - **Customers** will access the system from any device (desktop, mobile, or tablet)
   via a web browser, primarily to make reservations before visiting the rental location.
 
-- **Platform**: AI Assisted RentaCar is a web application built on Java with Spring MVC and JPA
-  for database persistence. It will be deployed on a Java-compatible application server
-  and accessed through modern web browsers. No dedicated mobile app is required for
-  the initial release.
+- **Platform**: AI Assisted RentaCar is a web application built on Java with Spring Boot
+  (Spring MVC) and JPA for database persistence. It will be packaged as a self-contained
+  executable JAR with an embedded servlet container (Tomcat) and accessed through modern
+  web browsers. No dedicated mobile app is required for the initial release.
 
 The system will store all data in a relational database. No integration with external
 payment gateways is required in the initial release — billing records are tracked
@@ -108,7 +108,8 @@ and customers.
 
 ### 4.2 Assumptions and Dependencies
 
-- The system will be deployed on a server with Java EE support (e.g., Apache Tomcat).
+- The system will be deployed as a self-contained executable JAR (Spring Boot, embedded
+  Tomcat) on a server with a compatible Java runtime.
 - A relational database (e.g., MySQL) will be available for data persistence.
 - Users will access the system via a modern web browser (Chrome, Firefox, Edge, or Safari).
 - No external payment gateway integration is required for the initial release;
@@ -174,10 +175,10 @@ and commercial alternatives do not offer.
 ## 5. Other Product Requirements
 
 **Platform & Standards**
-- The system must be implemented using Java, Spring MVC, and JPA as the core
-  technology stack, consistent with the course technology requirements.
-- The system must be deployable on Apache Tomcat and use a standard relational
-  database (MySQL or equivalent).
+- The system must be implemented using Java, Spring Boot (Spring MVC), and JPA as
+  the core technology stack, consistent with the course technology requirements.
+- The system must be deployable as a self-contained executable JAR with an embedded
+  Tomcat server, and use a standard relational database (MySQL or equivalent).
 
 **Performance**
 - The system must respond to availability search queries within 3 seconds under
