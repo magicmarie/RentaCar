@@ -14,12 +14,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     List<Reservation> findByCustomerIdOrderByStartDateDesc(Long customerId);
 
+    // A CHECKED_OUT reservation has no known return date yet - it blocks the vehicle
+    // for every date from its pickup onward, not just through its originally
+    // planned endDate, since a late return would otherwise let someone else book
+    // dates the vehicle is still physically out for.
     @Query("""
             select r from Reservation r
             where r.vehicle.id = :vehicleId
               and r.status in :statuses
               and r.startDate <= :endDate
-              and r.endDate >= :startDate
+              and (r.endDate >= :startDate or r.status = com.rentacar.entity.ReservationStatus.CHECKED_OUT)
             """)
     List<Reservation> findOverlapping(@Param("vehicleId") Long vehicleId,
                                        @Param("startDate") LocalDate startDate,
