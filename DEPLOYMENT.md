@@ -9,12 +9,6 @@ Service; frontend is a Static Site (a separate Render product — just a CDN
 serving the Vite build, no running container, so it doesn't sleep the way the
 backend does).
 
-The frontend briefly lived on Vercel first (see git history / the note below)
-before being consolidated onto Render so everything's in one place. The old
-Vercel deployment (https://frontend-three-pi-37.vercel.app) is still live and
-still works — it's kept as a working fallback, still allowed by the backend's
-CORS config, not because it's needed day to day.
-
 ## Why H2 instead of MySQL here
 
 The original plan was Railway (backend + a MySQL plugin in one place), documented
@@ -44,7 +38,7 @@ repo is public). Environment variables:
 | `SPRING_PROFILES_ACTIVE` | `dev` | H2, not MySQL — see above |
 | `JWT_SECRET` | a random 64-char string, generated for this deployment | overrides the dev placeholder; `prod` profile would refuse to boot without one, `dev` doesn't require it but this deployment sets a real one anyway |
 | `SPRING_H2_CONSOLE_ENABLED` | `false` | `dev` profile enables `/h2-console` by default (fine on localhost, not fine on a public URL) |
-| `CORS_ALLOWED_ORIGINS` | `https://rentacar-frontend.onrender.com,https://frontend-three-pi-37.vercel.app` | otherwise the browser blocks the frontend's API calls — both origins allowed since the old Vercel deployment is still up |
+| `CORS_ALLOWED_ORIGINS` | `https://rentacar-frontend.onrender.com` | otherwise the browser blocks the frontend's API calls |
 
 **Render (static site `rentacar-frontend`)** — built from the `frontend/`
 directory, `npm install && npm run build`, publishes `dist/`. One environment
