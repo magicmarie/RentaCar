@@ -1,21 +1,91 @@
 # Deploying RentaCar
 
-Backend (Spring Boot + MySQL) on **Railway**, frontend (static Vite build) on
-**Vercel**. Both have no-credit-card free tiers, which is what makes this pairing
-workable for a one-off course deployment.
+**Live:**
+- Frontend: https://frontend-three-pi-37.vercel.app
+- Backend API: https://rentacar-backend-a2et.onrender.com
 
-## 1. Backend + database on Railway
+Backend (Spring Boot, Dockerized) on **Render**'s free tier; frontend (static Vite
+build) on **Vercel**'s free tier. Both were set up with no credit card.
 
-1. Sign up at [railway.com](https://railway.com) with GitHub (no card required for
-   the free trial).
-2. **New Project → Deploy from GitHub repo → `magicmarie/RentaCar`.** When Railway
-   asks for a root directory / build context, point it at `backend/` — it will
-   detect the `Dockerfile` there and build from it.
-3. **New → Database → Add MySQL** in the same project. Railway provisions it and
-   exposes connection details as reference variables
-   (`${{MySQL.MYSQLHOST}}`, `${{MySQL.MYSQLPORT}}`, `${{MySQL.MYSQLDATABASE}}`,
-   `${{MySQL.MYSQLUSER}}`, `${{MySQL.MYSQLPASSWORD}}`).
-4. On the backend service, open **Variables** and set:
+## Why H2 instead of MySQL here
+
+The original plan was Railway (backend + a MySQL plugin in one place), documented
+below in case that becomes available again. Railway's free trial turned out to be
+expired on the account used for this deployment, and moving to a separate free
+MySQL host would have meant a fourth account/signup. Given the time available,
+the backend runs on Render with the same file-backed H2 database used in local
+dev instead of MySQL — the app code and `prod` (MySQL) profile are unchanged and
+still there; this deployment just runs under the `dev` Spring profile.
+
+**What this trades away:** Render's free tier has no persistent disk, so the H2
+file resets whenever the container restarts (redeploys, or Render recycling an
+idle instance). Each restart re-seeds fresh data via `DataSeeder`, so the app
+still works, but nothing you create in one running instance survives to the
+next. Fine for a live demo in one sitting; not a substitute for a real database
+for anything longer-lived.
+
+## What's actually configured
+
+**Render (backend service `rentacar-backend`)** — built from
+[`backend/Dockerfile`](backend/Dockerfile), root directory `backend/`, deployed
+straight from the public GitHub repo (no GitHub App connection needed since the
+repo is public). Environment variables:
+
+| Variable | Value | Why |
+|---|---|---|
+| `SPRING_PROFILES_ACTIVE` | `dev` | H2, not MySQL — see above |
+| `JWT_SECRET` | a random 64-char string, generated for this deployment | overrides the dev placeholder; `prod` profile would refuse to boot without one, `dev` doesn't require it but this deployment sets a real one anyway |
+| `SPRING_H2_CONSOLE_ENABLED` | `false` | `dev` profile enables `/h2-console` by default (fine on localhost, not fine on a public URL) |
+| `CORS_ALLOWED_ORIGINS` | the Vercel URL above | otherwise the browser blocks the frontend's API calls |
+
+**Vercel (project `frontend`)** — deployed directly from the `frontend/` directory
+(not via GitHub integration — the Vercel account here isn't linked to GitHub, so
+deploys are pushed with `vercel --prod` rather than auto-deploying on push, which
+means **redeploy manually after any frontend change** you want reflected live).
+One environment variable:
+
+| Variable | Value | Why |
+|---|---|---|
+| `VITE_API_BASE_URL` | `https://rentacar-backend-a2et.onrender.com/api` | baked in at build time — see [`frontend/src/api/client.ts`](frontend/src/api/client.ts) |
+
+[`frontend/vercel.json`](frontend/vercel.json) rewrites all paths to `index.html`
+— without it, a direct link to e.g. `/login` (or a page refresh anywhere but `/`)
+404s, because this is a client-side-routed SPA and Vercel doesn't know that by
+default.
+
+## Before presenting
+
+Render's free tier spins the container down after ~15 minutes idle, and cold
+start takes 1–2 minutes. **Hit the live URL a few minutes before you go live**
+so it's already warm — don't let the first load happen on screen during the
+demo.
+
+## Redeploying
+
+**Backend:** push to `main`, or trigger manually:
+```bash
+curl -X POST https://api.render.com/v1/services/srv-da89apegekts73cjjv3g/deploys \
+  -H "Authorization: Bearer $RENDER_API_KEY"
+```
+
+**Frontend:**
+```bash
+cd frontend
+VERCEL_TOKEN=... npx vercel --prod --yes --token "$VERCEL_TOKEN"
+```
+
+## Original plan: Railway (backend + MySQL in one place)
+
+Kept here in case the free trial issue is resolved later, or for a real
+production deployment where paying for Railway (or another MySQL host) makes
+sense — this path exercises the actual `prod` profile end to end (MySQL,
+required `JWT_SECRET`/`MAIL_*`, no fallbacks).
+
+1. Sign up at [railway.com](https://railway.com) with GitHub, **New Project →
+   Deploy from GitHub repo → `magicmarie/RentaCar`**, root directory `backend/`
+   (it will use `backend/Dockerfile`).
+2. **New → Database → Add MySQL** in the same project.
+3. On the backend service, set variables:
 
    | Variable | Value |
    |---|---|
@@ -23,44 +93,12 @@ workable for a one-off course deployment.
    | `DB_URL` | `jdbc:mysql://${{MySQL.MYSQLHOST}}:${{MySQL.MYSQLPORT}}/${{MySQL.MYSQLDATABASE}}` |
    | `DB_USERNAME` | `${{MySQL.MYSQLUSER}}` |
    | `DB_PASSWORD` | `${{MySQL.MYSQLPASSWORD}}` |
-   | `JWT_SECRET` | a random 32+ character string (e.g. `openssl rand -base64 32`) — **not** the dev placeholder |
-   | `CORS_ALLOWED_ORIGINS` | your Vercel frontend URL, once you have it (step 2) |
-   | `MAIL_HOST` | `sandbox.smtp.mailtrap.io` (or a real provider) |
-   | `MAIL_PORT` | `2525` |
-   | `MAIL_USERNAME` / `MAIL_PASSWORD` | from your Mailtrap inbox's SMTP Settings tab |
+   | `JWT_SECRET` | a random 32+ character string |
+   | `CORS_ALLOWED_ORIGINS` | your frontend URL |
+   | `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD` | a Mailtrap sandbox inbox's SMTP settings, or a real provider |
 
-   `application-prod.properties` has **no defaults** for `JWT_SECRET` or the
-   `MAIL_*` vars — the app deliberately fails to boot without them, rather than
-   silently running with a placeholder secret or a broken mailer.
-5. Deploy. Railway gives the service a public URL like
-   `https://rentacar-backend-production.up.railway.app`. Verify it's live:
-   `curl https://<that-url>/api/auth/login` should return a 400/401 JSON body,
-   not a connection error.
-
-## 2. Frontend on Vercel
-
-1. Sign up at [vercel.com](https://vercel.com) with GitHub (no card required).
-2. **Add New → Project → import `magicmarie/RentaCar`.** Set **Root Directory**
-   to `frontend/`. Framework preset: Vite (auto-detected).
-3. Add an environment variable: `VITE_API_BASE_URL` =
-   `https://<your-railway-backend-url>/api`.
-4. Deploy. Vercel gives you a URL like `https://rentacar-<hash>.vercel.app`.
-5. Go back to Railway and set `CORS_ALLOWED_ORIGINS` to that exact Vercel URL
-   (no trailing slash), then redeploy the backend so the CORS config picks it up.
-
-## 3. Verify end to end
-
-Open the Vercel URL and log in with a seeded account
-(`customer@rentacar.com` / `customer123`). If login hangs or errors in the
-browser console with a CORS message, double-check step 2.5 above.
-
-## Notes
-
-- Railway's free trial is credit-based ($5, ~30 days) — plenty for a one-time
-  graded demo, but the service will stop once the credit runs out. If the
-  deployment needs to stay up past that, a paid Railway plan (or moving the DB
-  to a separate always-free MySQL host) is the next step.
-- The seeded accounts (`admin@rentacar.com` / `staff@rentacar.com` /
-  `customer@rentacar.com`, passwords in the main README) work in the cloud
-  exactly as they do locally — `DataSeeder` runs once against whatever database
-  is empty on first boot.
+   `application-prod.properties` has no defaults for `JWT_SECRET` or the
+   `MAIL_*` vars — it fails to boot without them, rather than silently running
+   with a placeholder secret or a broken mailer.
+4. Point `VITE_API_BASE_URL` (frontend) at the resulting Railway backend URL,
+   and `CORS_ALLOWED_ORIGINS` (backend) at the frontend's URL.
