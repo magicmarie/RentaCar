@@ -62,11 +62,17 @@ demo.
 
 ## Redeploying
 
-**Backend:** push to `main`, or trigger manually:
+**Backend:** this service was created via Render's API rather than through the
+dashboard's "connect GitHub" flow, so **no webhook is wired up** — pushing to
+`main` does *not* auto-redeploy it, even though the dashboard shows
+`autoDeploy: yes`. Trigger a deploy manually after any backend change:
 ```bash
 curl -X POST https://api.render.com/v1/services/srv-da89apegekts73cjjv3g/deploys \
   -H "Authorization: Bearer $RENDER_API_KEY"
 ```
+(Or fix this properly once: open the service in the Render dashboard → Settings
+→ connect the GitHub repo through their UI, which sets up the webhook Render's
+API can't create on its own for an unlinked account.)
 
 **Frontend:**
 ```bash
