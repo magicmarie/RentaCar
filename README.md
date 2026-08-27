@@ -307,6 +307,18 @@ check-in → bill lifecycle):
   checking and oxlint, backed by manual QA across all three roles.
 - Staff have no "browse all reservations" list — lookup is by reservation ID
   only ([`ReservationLookupPage`](frontend/src/pages/staff/ReservationLookupPage.tsx)).
+- Double-booking prevention is planned-date-based, not real-time: a new
+  reservation is checked against other reservations' *planned* start/end
+  dates, not whether a vehicle is actually back yet. If a customer returns
+  late, a reservation booked for right after can still be accepted — it'll
+  correctly fail at check-out time (`checkOut()` refuses a `RENTED` vehicle,
+  so two customers can never actually be handed the same car), but staff
+  only find out that day, not in advance. This is a deliberate trade-off:
+  the alternative (treating every checked-out vehicle as unavailable
+  indefinitely, since its true return time is unknown) would block
+  legitimate future bookings far more often than late returns actually
+  happen — real rental counters accept and resolve this same risk rather
+  than over-block their fleet.
 
 **Future Improvements**
 - Add a DB-level unique constraint (or optimistic locking) on overlapping

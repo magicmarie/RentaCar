@@ -108,24 +108,6 @@ class ReservationRepositoryTest {
     }
 
     @Test
-    void findOverlapping_checkedOutReservationBlocksDatesPastItsPlannedEndDate() {
-        // Reservation from setUp() is PENDING with endDate 2026-09-05. A query for
-        // 2026-09-10..2026-09-12 doesn't overlap that planned window (confirmed by
-        // findOverlapping_ignoresNonOverlappingDateRange above) - but if the same
-        // reservation is actually CHECKED_OUT (picked up, not yet returned), its
-        // true return date is unknown, so it must still block later dates.
-        Reservation reservation = reservationRepository.findByCustomerIdOrderByStartDateDesc(customer.getId()).get(0);
-        reservation.setStatus(ReservationStatus.CHECKED_OUT);
-        reservationRepository.save(reservation);
-
-        var result = reservationRepository.findOverlapping(vehicle.getId(),
-                LocalDate.of(2026, 9, 10), LocalDate.of(2026, 9, 12),
-                List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.CHECKED_OUT));
-
-        assertThat(result).hasSize(1);
-    }
-
-    @Test
     void existsByVehicleIdAndStatusIn_trueWhenBlockingReservationExists() {
         boolean exists = reservationRepository.existsByVehicleIdAndStatusIn(vehicle.getId(),
                 List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.CHECKED_OUT));
