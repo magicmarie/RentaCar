@@ -42,18 +42,28 @@ export function CheckOutPage() {
       {reservation && (
         <p>{reservation.customerName} — {reservation.vehicleMake} {reservation.vehicleModel} ({reservation.licensePlate})</p>
       )}
-      <form className="card auth-form" onSubmit={handleSubmit}>
-        {error && <p className="form-error">{error}</p>}
-        {message && <p className="form-success">{message}</p>}
-        <label>
-          Pick-up date and time
-          <input type="datetime-local" value={pickupDateTime} onChange={(e) => setPickupDateTime(e.target.value)} required />
-        </label>
-        <button type="submit" className="btn btn-primary">Confirm check-out</button>
-        <button type="button" className="btn btn-secondary" onClick={() => navigate('/staff/lookup')}>
-          Back to lookup
-        </button>
-      </form>
+      {!message && (
+        <form className="card auth-form" onSubmit={handleSubmit}>
+          {error && <p className="form-error">{error}</p>}
+          <label>
+            Pick-up date and time
+            <input type="datetime-local" value={pickupDateTime} onChange={(e) => setPickupDateTime(e.target.value)} required />
+          </label>
+          <button type="submit" className="btn btn-primary">Confirm check-out</button>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/staff/lookup')}>
+            Back to lookup
+          </button>
+        </form>
+      )}
+
+      {message && (
+        <div className="card">
+          <p className="form-success">{message}</p>
+          <button type="button" className="btn btn-primary" onClick={() => navigate('/staff/lookup')}>
+            Back to lookup
+          </button>
+        </div>
+      )}
     </div>
   );
 }
