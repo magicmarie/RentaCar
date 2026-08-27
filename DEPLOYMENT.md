@@ -1,11 +1,19 @@
 # Deploying RentaCar
 
 **Live:**
-- Frontend: https://frontend-three-pi-37.vercel.app
+- Frontend: https://rentacar-frontend.onrender.com
 - Backend API: https://rentacar-backend-a2et.onrender.com
 
-Backend (Spring Boot, Dockerized) on **Render**'s free tier; frontend (static Vite
-build) on **Vercel**'s free tier. Both were set up with no credit card.
+Both on **Render**'s free tier, no credit card. Backend is a Docker-based Web
+Service; frontend is a Static Site (a separate Render product — just a CDN
+serving the Vite build, no running container, so it doesn't sleep the way the
+backend does).
+
+The frontend briefly lived on Vercel first (see git history / the note below)
+before being consolidated onto Render so everything's in one place. The old
+Vercel deployment (https://frontend-three-pi-37.vercel.app) is still live and
+still works — it's kept as a working fallback, still allowed by the backend's
+CORS config, not because it's needed day to day.
 
 ## Why H2 instead of MySQL here
 
@@ -36,49 +44,46 @@ repo is public). Environment variables:
 | `SPRING_PROFILES_ACTIVE` | `dev` | H2, not MySQL — see above |
 | `JWT_SECRET` | a random 64-char string, generated for this deployment | overrides the dev placeholder; `prod` profile would refuse to boot without one, `dev` doesn't require it but this deployment sets a real one anyway |
 | `SPRING_H2_CONSOLE_ENABLED` | `false` | `dev` profile enables `/h2-console` by default (fine on localhost, not fine on a public URL) |
-| `CORS_ALLOWED_ORIGINS` | the Vercel URL above | otherwise the browser blocks the frontend's API calls |
+| `CORS_ALLOWED_ORIGINS` | `https://rentacar-frontend.onrender.com,https://frontend-three-pi-37.vercel.app` | otherwise the browser blocks the frontend's API calls — both origins allowed since the old Vercel deployment is still up |
 
-**Vercel (project `frontend`)** — deployed directly from the `frontend/` directory
-(not via GitHub integration — the Vercel account here isn't linked to GitHub, so
-deploys are pushed with `vercel --prod` rather than auto-deploying on push, which
-means **redeploy manually after any frontend change** you want reflected live).
-One environment variable:
+**Render (static site `rentacar-frontend`)** — built from the `frontend/`
+directory, `npm install && npm run build`, publishes `dist/`. One environment
+variable (build-time, baked into the JS bundle — see
+[`frontend/src/api/client.ts`](frontend/src/api/client.ts)):
 
-| Variable | Value | Why |
-|---|---|---|
-| `VITE_API_BASE_URL` | `https://rentacar-backend-a2et.onrender.com/api` | baked in at build time — see [`frontend/src/api/client.ts`](frontend/src/api/client.ts) |
+| Variable | Value |
+|---|---|
+| `VITE_API_BASE_URL` | `https://rentacar-backend-a2et.onrender.com/api` |
 
-[`frontend/vercel.json`](frontend/vercel.json) rewrites all paths to `index.html`
-— without it, a direct link to e.g. `/login` (or a page refresh anywhere but `/`)
-404s, because this is a client-side-routed SPA and Vercel doesn't know that by
-default.
+A rewrite rule (`/* → /index.html`, added via `POST /v1/services/{id}/routes`)
+sends every path to the SPA — without it, a direct link to e.g. `/login` (or a
+refresh anywhere but `/`) 404s, since Render's static-site product otherwise
+serves only files that literally exist and this is a client-side-routed SPA.
 
 ## Before presenting
 
-Render's free tier spins the container down after ~15 minutes idle, and cold
-start takes 1–2 minutes. **Hit the live URL a few minutes before you go live**
-so it's already warm — don't let the first load happen on screen during the
-demo.
+The backend (Web Service, not the frontend Static Site) spins its container
+down after ~15 minutes idle, and cold start takes 1–2 minutes. **Hit the live
+frontend URL a few minutes before you go live** so the backend it calls is
+already warm — don't let that delay happen on screen during the demo.
 
 ## Redeploying
 
-**Backend:** this service was created via Render's API rather than through the
-dashboard's "connect GitHub" flow, so **no webhook is wired up** — pushing to
-`main` does *not* auto-redeploy it, even though the dashboard shows
-`autoDeploy: yes`. Trigger a deploy manually after any backend change:
+Both services were created via Render's API rather than through the
+dashboard's "connect GitHub" flow, so **no webhook is wired up on either one**
+— pushing to `main` does *not* auto-redeploy them, even though the dashboard
+shows `autoDeploy: yes`. Trigger a deploy manually after any change:
 ```bash
+# backend
 curl -X POST https://api.render.com/v1/services/srv-da89apegekts73cjjv3g/deploys \
   -H "Authorization: Bearer $RENDER_API_KEY"
+# frontend
+curl -X POST https://api.render.com/v1/services/srv-da8aj47avr4c73eu9mmg/deploys \
+  -H "Authorization: Bearer $RENDER_API_KEY"
 ```
-(Or fix this properly once: open the service in the Render dashboard → Settings
-→ connect the GitHub repo through their UI, which sets up the webhook Render's
-API can't create on its own for an unlinked account.)
-
-**Frontend:**
-```bash
-cd frontend
-VERCEL_TOKEN=... npx vercel --prod --yes --token "$VERCEL_TOKEN"
-```
+(Or fix this properly once per service: open it in the Render dashboard →
+Settings → connect the GitHub repo through their UI, which sets up the webhook
+the API can't create on its own for an unlinked account.)
 
 ## Original plan: Railway (backend + MySQL in one place)
 

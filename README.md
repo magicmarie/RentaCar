@@ -6,10 +6,10 @@ AI-assisted recommendation to help customers pick a suitable vehicle. Built as a
 Spring Boot REST API backed by a React + TypeScript single-page app, with role-based
 access for **admins**, **staff**, and **customers**.
 
-**Live demo:** [frontend-three-pi-37.vercel.app](https://frontend-three-pi-37.vercel.app)
+**Live demo:** [rentacar-frontend.onrender.com](https://rentacar-frontend.onrender.com)
 (API: [rentacar-backend-a2et.onrender.com](https://rentacar-backend-a2et.onrender.com)) —
-seeded accounts below. The backend is on Render's free tier, which sleeps after
-15 minutes idle; the first request after a sleep takes ~1–2 minutes to wake up.
+seeded accounts below. Both run on Render's free tier; the backend sleeps after
+15 minutes idle, so the first request after a sleep takes ~1–2 minutes to wake up.
 See [DEPLOYMENT.md](DEPLOYMENT.md) for how this is deployed and configured.
 
 ## Table of Contents
