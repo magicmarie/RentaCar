@@ -13,6 +13,7 @@ import com.rentacar.repository.CategoryRepository;
 import com.rentacar.repository.ReservationRepository;
 import com.rentacar.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +51,7 @@ public class VehicleService {
     }
 
     public List<Vehicle> list(Long categoryId, VehicleStatus status) {
-        return vehicleRepository.findAll().stream()
+        return vehicleRepository.findAll(Sort.by(Sort.Direction.DESC, "id")).stream()
                 .filter(v -> categoryId == null || v.getCategory().getId().equals(categoryId))
                 .filter(v -> status == null || v.getStatus() == status)
                 .toList();

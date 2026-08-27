@@ -9,6 +9,7 @@ import com.rentacar.exception.ResourceNotFoundException;
 import com.rentacar.repository.CategoryRepository;
 import com.rentacar.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +37,7 @@ public class CategoryService {
     }
 
     public List<Category> list() {
-        return categoryRepository.findAll();
+        return categoryRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
     }
 
     public Category getById(Long id) {

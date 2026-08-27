@@ -19,5 +19,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByDriverLicenseNumber(String driverLicenseNumber);
 
-    List<User> findByRole(Role role);
+    List<User> findByRoleOrderByIdDesc(Role role);
 }

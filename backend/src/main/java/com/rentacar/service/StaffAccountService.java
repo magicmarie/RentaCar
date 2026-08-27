@@ -40,7 +40,7 @@ public class StaffAccountService {
     }
 
     public List<User> list() {
-        return userRepository.findByRole(Role.STAFF);
+        return userRepository.findByRoleOrderByIdDesc(Role.STAFF);
     }
 
     public User getById(Long id) {
