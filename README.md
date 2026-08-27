@@ -19,8 +19,11 @@ access for **admins**, **staff**, and **customers**.
   - [Running the Frontend](#running-the-frontend)
   - [Default Seeded Accounts](#default-seeded-accounts)
 - [Configuration](#configuration)
+- [Database Setup](#database-setup)
 - [API Endpoints](#api-endpoints)
 - [Running Tests](#running-tests)
+- [Screenshots](#screenshots)
+- [Known Limitations & Future Improvements](#known-limitations--future-improvements)
 - [Project Documentation](#project-documentation)
 - [License](#license)
 
@@ -183,6 +186,29 @@ The frontend reads `VITE_API_PROXY_TARGET` (optional) to point the dev proxy at 
 non-default backend URL — see
 [`frontend/vite.config.ts`](frontend/vite.config.ts).
 
+## Database Setup
+
+**Dev (default):** nothing to install. The `dev` profile uses a file-backed H2
+database (`backend/data/rentacar.mv.db`, gitignored) that's created automatically on
+first run and re-seeded by `DataSeeder` whenever it's empty.
+
+**Prod (MySQL):**
+
+1. Create a database and a user with privileges on it:
+   ```sql
+   CREATE DATABASE rentacar CHARACTER SET utf8mb4;
+   CREATE USER 'rentacar'@'%' IDENTIFIED BY 'a-real-password';
+   GRANT ALL PRIVILEGES ON rentacar.* TO 'rentacar'@'%';
+   ```
+2. Set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` (see [Configuration](#configuration))
+   to point at it.
+3. Start the app with `SPRING_PROFILES_ACTIVE=prod`. Hibernate creates/updates the
+   schema on boot (`spring.jpa.hibernate.ddl-auto=update`); no separate migration
+   step is required for this project's scope.
+4. `rentacar.jwt.secret` has **no default** under the `prod` profile — the app
+   fails fast on boot if `JWT_SECRET` isn't set, rather than silently signing
+   tokens with the dev placeholder.
+
 ## API Endpoints
 
 All endpoints are prefixed with `/api`. Endpoints marked 🔒 require a valid JWT
@@ -195,8 +221,8 @@ authorized where access is further restricted.
 | POST   | `/auth/register`                        | Public   | Register a new customer account           |
 | POST   | `/auth/forgot-password`                 | Public   | Request a password-reset email            |
 | POST   | `/auth/reset-password`                  | Public   | Reset password using a reset token        |
-| GET    | `/categories`                           | Public   | List vehicle categories                   |
-| GET    | `/categories/{id}`                      | Public   | Get a category                            |
+| GET    | `/categories`                           | 🔒       | List vehicle categories                   |
+| GET    | `/categories/{id}`                      | 🔒       | Get a category                            |
 | POST   | `/categories`                           | 🔒 Admin | Create a category                         |
 | PUT    | `/categories/{id}/rate`                 | 🔒 Admin | Update a category's daily rate            |
 | DELETE | `/categories/{id}`                      | 🔒 Admin | Delete a category                         |
@@ -238,6 +264,51 @@ mvn test
 cd frontend
 npm run lint
 ```
+
+**Evidence** — last local run, 129 tests across 23 files (unit, controller/MockMvc,
+and one full-stack integration test covering the reservation → check-out →
+check-in → bill lifecycle):
+
+```
+[INFO] Tests run: 129, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+```
+
+## Screenshots
+
+|  |  |
+|---|---|
+| **Login** | **Customer — search & reserve** |
+| ![Login page](frontend/public/screenshots/01-login.png) | ![Search vehicles](frontend/public/screenshots/02-search-vehicles.png) |
+| **Staff — check-out** | **Staff — check-in, bill generated** |
+| ![Staff check-out](frontend/public/screenshots/03-staff-checkout.png) | ![Staff check-in with bill](frontend/public/screenshots/04-staff-checkin-bill.png) |
+| **Admin — fleet dashboard** | |
+| ![Admin dashboard](frontend/public/screenshots/05-admin-dashboard.png) | |
+
+## Known Limitations & Future Improvements
+
+**Limitations**
+- The double-booking check (search + create) isn't fully race-safe: two
+  near-simultaneous bookings for the same vehicle/dates could both pass the
+  overlap check before either is committed. There's no DB-level unique
+  constraint or row lock backing it up yet.
+- The "AI-assisted" recommendation ([`RecommendationService`](backend/src/main/java/com/rentacar/service/RecommendationService.java))
+  is deliberately rule-based (filter by seats/budget, sort by price) — no
+  external ML service, per the Vision Document's stated scope.
+- No payment gateway integration — `Bill` records an amount owed, it doesn't
+  process a card.
+- No automated frontend test suite; the frontend relies on TypeScript's type
+  checking and oxlint, backed by manual QA across all three roles.
+- Staff have no "browse all reservations" list — lookup is by reservation ID
+  only ([`ReservationLookupPage`](frontend/src/pages/staff/ReservationLookupPage.tsx)).
+
+**Future Improvements**
+- Add a DB-level unique constraint (or optimistic locking) on overlapping
+  reservations to close the race condition above.
+- Frontend component/e2e tests (e.g. Vitest + Testing Library, or Playwright).
+- Real payment processing on check-in.
+- Refresh tokens, so a 24h JWT isn't the only session lifetime lever.
+- Pagination/search on the staff reservation list instead of ID-only lookup.
 
 ## Project Documentation
 
