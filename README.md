@@ -93,12 +93,15 @@ over/receives the vehicle for it.
 
 Staff **do** see every customer's reservations — the ownership check that limits
 `GET /reservations/{id}` and cancellation only applies to customers; staff and admin
-tokens bypass it and can look up or cancel any reservation. In the current UI, staff
-find a reservation by entering its ID on the [Reservation Lookup](frontend/src/pages/staff/ReservationLookupPage.tsx)
-page (there's no "browse all reservations" list yet). Admins instead get an
-aggregate view: the dashboard (`GET /api/dashboard`) surfaces all active rentals and
-all upcoming reservations across every customer, alongside fleet status counts —
-but, by design, admins can't act on them (no checkout/check-in) or cancel them from
+tokens bypass it and can look up or cancel any reservation. Staff have two ways
+to find one: [All Reservations](frontend/src/pages/staff/AllReservationsPage.tsx)
+— filterable by status and searchable by customer name/email or license plate,
+with check-out/check-in/cancel actions right in the list — and
+[Reservation Lookup](frontend/src/pages/staff/ReservationLookupPage.tsx) for
+jumping straight to one by ID. Admins instead get an aggregate view: the
+dashboard (`GET /api/dashboard`) surfaces all active rentals and all upcoming
+reservations across every customer, alongside fleet status counts — but, by
+design, admins can't act on them (no checkout/check-in) or cancel them from
 there.
 
 ## Tech Stack
@@ -106,7 +109,7 @@ there.
 **Backend**
 - Java 21, Spring Boot 3.3.4 (Web, Data JPA, Security, Validation, Mail)
 - JWT authentication ([jjwt](https://github.com/jwtk/jjwt))
-- H2 (in-memory, dev) / MySQL (prod) via Spring Data JPA + Hibernate
+- H2 (file-backed, dev) / MySQL (prod) via Spring Data JPA + Hibernate
 - Lombok
 - Maven
 
@@ -131,8 +134,8 @@ SWE/
 
 - [Java 21](https://adoptium.net/) and Maven (or use the included `mvnw`, if present)
 - [Node.js](https://nodejs.org/) 18+ and npm
-- No database installation needed for local development — the backend runs on an
-  in-memory H2 database by default
+- No database installation needed for local development — the backend runs on a
+  file-backed H2 database by default
 
 ### Running the Backend
 
@@ -141,9 +144,9 @@ cd backend
 mvn spring-boot:run
 ```
 
-The API starts on **http://localhost:8080** using the `dev` Spring profile (H2
-in-memory database, auto-seeded with sample data — see below). An H2 web console is
-available at `http://localhost:8080/h2-console` (JDBC URL: `jdbc:h2:mem:rentacar`,
+The API starts on **http://localhost:8080** using the `dev` Spring profile (file-backed
+H2 database, auto-seeded with sample data — see below). An H2 web console is
+available at `http://localhost:8080/h2-console` (JDBC URL: `jdbc:h2:file:./data/rentacar`,
 user: `sa`, no password).
 
 ### Running the Frontend
@@ -237,6 +240,7 @@ authorized where access is further restricted.
 | POST   | `/vehicles`                             | 🔒 Admin | Add a vehicle                             |
 | PUT    | `/vehicles/{id}`                        | 🔒 Admin | Update a vehicle                          |
 | DELETE | `/vehicles/{id}`                        | 🔒 Admin | Remove a vehicle                          |
+| GET    | `/reservations`                         | 🔒 Staff/Admin | Search/list reservations (by status and/or customer/plate) |
 | GET    | `/reservations/available`               | 🔒       | Search vehicles available for a date range |
 | GET    | `/reservations/recommend`               | 🔒 Customer | Get an AI-assisted vehicle recommendation |
 | POST   | `/reservations`                         | 🔒 Customer | Create a reservation                      |
@@ -305,8 +309,8 @@ check-in → bill lifecycle):
   process a card.
 - No automated frontend test suite; the frontend relies on TypeScript's type
   checking and oxlint, backed by manual QA across all three roles.
-- Staff have no "browse all reservations" list — lookup is by reservation ID
-  only ([`ReservationLookupPage`](frontend/src/pages/staff/ReservationLookupPage.tsx)).
+- The staff "All Reservations" list has no pagination — fine at the current
+  seed-data scale, would need it for a fleet with a real reservation volume.
 - Double-booking prevention is planned-date-based, not real-time: a new
   reservation is checked against other reservations' *planned* start/end
   dates, not whether a vehicle is actually back yet. If a customer returns
@@ -326,7 +330,7 @@ check-in → bill lifecycle):
 - Frontend component/e2e tests (e.g. Vitest + Testing Library, or Playwright).
 - Real payment processing on check-in.
 - Refresh tokens, so a 24h JWT isn't the only session lifetime lever.
-- Pagination/search on the staff reservation list instead of ID-only lookup.
+- Pagination on the All Reservations list.
 
 ## Project Documentation
 
