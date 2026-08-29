@@ -31,6 +31,8 @@ class ReservationControllerTest extends AbstractControllerTest {
                 .status(ReservationStatus.PENDING).build();
     }
 
+    // Reservation search is a staff/admin tool for managing bookings; staff
+    // calling it with no filters should get the full (mocked) result list back.
     @Test
     void search_asStaff_returns200() throws Exception {
         when(reservationService.search(isNull(), isNull())).thenReturn(List.of(sampleReservation()));
@@ -40,6 +42,7 @@ class ReservationControllerTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$[0].id").value(1));
     }
 
+    // Admins should have the same search access as staff.
     @Test
     void search_asAdmin_returns200() throws Exception {
         when(reservationService.search(any(), any())).thenReturn(List.of());
@@ -48,18 +51,23 @@ class ReservationControllerTest extends AbstractControllerTest {
                 .andExpect(status().isOk());
     }
 
+    // Customers don't get to search across all reservations (that would expose
+    // other customers' bookings); this endpoint is staff/admin only.
     @Test
     void search_asCustomer_returns403() throws Exception {
         mockMvc.perform(get("/api/reservations").with(as(customerUser(3))))
                 .andExpect(status().isForbidden());
     }
 
+    // No credentials at all should be rejected at the security-filter level.
     @Test
     void search_unauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/reservations"))
                 .andExpect(status().isUnauthorized());
     }
 
+    // Confirms the "status" and "query" request params are actually forwarded
+    // to the service call rather than being dropped or ignored by the controller.
     @Test
     void search_passesStatusAndQueryThrough() throws Exception {
         when(reservationService.search(ReservationStatus.PENDING, "doe")).thenReturn(List.of(sampleReservation()));

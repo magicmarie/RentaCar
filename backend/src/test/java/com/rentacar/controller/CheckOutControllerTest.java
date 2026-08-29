@@ -16,6 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class CheckOutControllerTest extends AbstractControllerTest {
 
+    // A reservation already marked CHECKED_OUT with its vehicle now RENTED,
+    // representing the state after a successful check-out call.
     private Reservation sampleReservation() {
         Category economy = Category.builder().id(1L).name("Economy").dailyRate(BigDecimal.TEN).build();
         Vehicle vehicle = Vehicle.builder().id(1L).make("Toyota").model("Corolla").year(2022)
@@ -26,6 +28,8 @@ class CheckOutControllerTest extends AbstractControllerTest {
                 .status(ReservationStatus.CHECKED_OUT).build();
     }
 
+    // Happy path: staff handing over a vehicle to a customer with an explicit
+    // pickup time should succeed.
     @Test
     void checkOut_asStaff_returns200() throws Exception {
         when(reservationService.checkOut(eq(1L), any())).thenReturn(sampleReservation());
@@ -38,6 +42,8 @@ class CheckOutControllerTest extends AbstractControllerTest {
                 .andExpect(status().isOk());
     }
 
+    // The pickup time body is optional (e.g. the service can default it), so
+    // omitting the request body entirely should not fail validation.
     @Test
     void checkOut_withoutBody_stillWorks() throws Exception {
         when(reservationService.checkOut(eq(1L), any())).thenReturn(sampleReservation());
@@ -46,18 +52,24 @@ class CheckOutControllerTest extends AbstractControllerTest {
                 .andExpect(status().isOk());
     }
 
+    // Check-out is a front-desk (staff) operation; even an admin isn't granted
+    // this permission, confirming the access rule is role-specific, not
+    // "any elevated role."
     @Test
     void checkOut_asAdmin_returns403() throws Exception {
         mockMvc.perform(post("/api/checkout/1").with(as(adminUser())))
                 .andExpect(status().isForbidden());
     }
 
+    // Customers cannot check themselves out; only staff perform this action.
     @Test
     void checkOut_asCustomer_returns403() throws Exception {
         mockMvc.perform(post("/api/checkout/1").with(as(customerUser(3))))
                 .andExpect(status().isForbidden());
     }
 
+    // e.g. checking out a reservation that's already been checked out or was
+    // cancelled; the service's InvalidStateException must map to 422.
     @Test
     void checkOut_invalidReservationState_returns422() throws Exception {
         doThrow(new InvalidStateException("Check-out cannot proceed for this reservation"))

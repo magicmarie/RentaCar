@@ -24,9 +24,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * {@code @Transactional} rolls each test's changes back afterward so tests don't
  * interfere with each other or with the DataSeeder-seeded baseline data.
  */
+// Boots the full Spring application context (all beans, real DB, real security
+// filters) rather than mocking pieces out, so the test exercises the app end to end.
 @SpringBootTest
+// Registers MockMvc, which lets tests fire simulated HTTP requests at the
+// controllers without actually opening a network port.
 @AutoConfigureMockMvc
+// Loads the "dev" profile's config (e.g. H2 datasource) for this test run.
 @ActiveProfiles("dev")
+// Wraps each test method in a transaction that is rolled back at the end, so
+// data created by one test (reservations, staff accounts, etc.) never leaks into another.
 @Transactional
 class RentalLifecycleIntegrationTest {
 
@@ -35,6 +42,8 @@ class RentalLifecycleIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // Shared helper: logs in as a given user via the real auth endpoint and
+    // returns the JWT so tests can act as customer/staff/admin without repeating this boilerplate.
     private String loginAndGetToken(String usernameOrEmail, String password) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType("application/json")
@@ -45,6 +54,10 @@ class RentalLifecycleIntegrationTest {
         return json.get("token").asText();
     }
 
+    // Exercises the entire real-world rental flow in one pass - search, reserve,
+    // check out, check in (which auto-generates a bill), and view the results as different
+    // roles - so a break in any one step (e.g. wrong bill total) is caught here even if
+    // each step's own unit tests still pass in isolation.
     @Test
     void fullRentalLifecycle_fromReservationThroughBill() throws Exception {
         String customerToken = loginAndGetToken("customer@rentacar.com", "customer123");
@@ -109,6 +122,8 @@ class RentalLifecycleIntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    // Verifies the same vehicle can't be reserved twice for overlapping dates -
+    // if this failed, customers could book a car another customer already holds.
     @Test
     void doubleBooking_isRejectedAtTheHttpBoundary() throws Exception {
         String token = loginAndGetToken("customer@rentacar.com", "customer123");
@@ -131,6 +146,8 @@ class RentalLifecycleIntegrationTest {
                 .andExpect(jsonPath("$.message").value("This vehicle is no longer available for those dates"));
     }
 
+    // Confirms role-based access control (RBAC) is enforced at the HTTP layer:
+    // a valid customer token must not grant access to staff/admin-only endpoints.
     @Test
     void customerCannotReachAdminOrStaffEndpoints() throws Exception {
         String customerToken = loginAndGetToken("customer@rentacar.com", "customer123");
@@ -143,12 +160,18 @@ class RentalLifecycleIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    // Checks that missing authentication produces 401 Unauthorized rather than
+    // 403 Forbidden - the two mean different things (not authenticated vs. not permitted),
+    // and mixing them up would mislead API clients about how to fix the request.
     @Test
     void requestWithNoToken_isRejectedWith401NotJustForbidden() throws Exception {
         mockMvc.perform(get("/api/dashboard"))
                 .andExpect(status().isUnauthorized());
     }
 
+    // Verifies that deactivating a staff account immediately blocks future logins
+    // (the account can log in before deactivation, but not after) - important so an
+    // admin can revoke access to an ex-employee's account and trust it takes effect right away.
     @Test
     void deactivatedStaffAccount_cannotLogIn() throws Exception {
         String adminToken = loginAndGetToken("admin@rentacar.com", "admin123");
@@ -182,6 +205,7 @@ class RentalLifecycleIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // Small DTO used only to serialize the login request body via Jackson.
     private record LoginPayload(String usernameOrEmail, String password) {
     }
 }

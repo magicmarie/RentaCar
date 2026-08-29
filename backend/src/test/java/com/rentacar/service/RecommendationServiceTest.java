@@ -19,12 +19,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
+// Enables Mockito annotations (@Mock, @InjectMocks) without a full Spring context.
 @ExtendWith(MockitoExtension.class)
 class RecommendationServiceTest {
 
+    // @Mock: RecommendationService delegates availability lookups to
+    // ReservationService, so we stub that boundary rather than the database.
     @Mock
     private ReservationService reservationService;
 
+    // @InjectMocks builds a real RecommendationService wired with the mock above.
     @InjectMocks
     private RecommendationService recommendationService;
 
@@ -32,6 +36,8 @@ class RecommendationServiceTest {
     private Vehicle suv7Seat;
     private Vehicle luxury5Seat;
 
+    // Shared fixture: three vehicles spanning different seating capacities
+    // and price points, reused across tests to check filtering/sorting.
     @BeforeEach
     void setUp() {
         Category economy = Category.builder().id(1L).name("Economy").dailyRate(new BigDecimal("40.00")).build();
@@ -43,6 +49,8 @@ class RecommendationServiceTest {
         luxury5Seat = Vehicle.builder().id(3L).seatingCapacity(5).category(luxury).status(VehicleStatus.AVAILABLE).build();
     }
 
+    // Verifies vehicles seating fewer passengers than requested are excluded,
+    // even if otherwise available.
     @Test
     void recommend_filtersByPassengerCount() {
         when(reservationService.searchAvailability(any(), any(), isNull()))
@@ -53,6 +61,7 @@ class RecommendationServiceTest {
         assertThat(result).containsExactly(suv7Seat);
     }
 
+    // Verifies vehicles priced above the given daily-rate budget are excluded.
     @Test
     void recommend_filtersByBudget() {
         when(reservationService.searchAvailability(any(), any(), isNull()))
@@ -63,6 +72,8 @@ class RecommendationServiceTest {
         assertThat(result).containsExactlyInAnyOrder(economy4Seat, suv7Seat);
     }
 
+    // Verifies results are ordered cheapest-first regardless of the order
+    // returned by the underlying availability search.
     @Test
     void recommend_sortsByDailyRateAscending() {
         when(reservationService.searchAvailability(any(), any(), isNull()))
@@ -73,6 +84,8 @@ class RecommendationServiceTest {
         assertThat(result).containsExactly(economy4Seat, suv7Seat, luxury5Seat);
     }
 
+    // Verifies that with no seating/budget filters applied, every available
+    // vehicle is returned (i.e. filters are optional, not silently required).
     @Test
     void recommend_withNoFilters_returnsAllAvailable() {
         when(reservationService.searchAvailability(any(), any(), isNull()))

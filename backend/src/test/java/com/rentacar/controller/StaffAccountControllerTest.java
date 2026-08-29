@@ -19,6 +19,8 @@ class StaffAccountControllerTest extends AbstractControllerTest {
                 .role(Role.STAFF).active(true).build();
     }
 
+    // Managing staff accounts is an admin-only capability; an admin listing
+    // staff should succeed and see the staff data.
     @Test
     void list_asAdmin_returns200() throws Exception {
         when(staffAccountService.list()).thenReturn(List.of(sampleStaff()));
@@ -28,18 +30,22 @@ class StaffAccountControllerTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$[0].email").value("staff@rentacar.com"));
     }
 
+    // Staff can't manage other staff accounts (no privilege escalation via a
+    // staff account seeing/managing peers); only admins can.
     @Test
     void list_asStaff_returns403() throws Exception {
         mockMvc.perform(get("/api/staff-accounts").with(as(staffUser())))
                 .andExpect(status().isForbidden());
     }
 
+    // Customers definitely shouldn't see internal staff account data.
     @Test
     void list_asCustomer_returns403() throws Exception {
         mockMvc.perform(get("/api/staff-accounts").with(as(customerUser(3))))
                 .andExpect(status().isForbidden());
     }
 
+    // Happy path: an admin can create a new staff account with valid data.
     @Test
     void create_asAdmin_returns200() throws Exception {
         when(staffAccountService.create(any())).thenReturn(sampleStaff());
@@ -52,6 +58,8 @@ class StaffAccountControllerTest extends AbstractControllerTest {
                 .andExpect(status().isOk());
     }
 
+    // Deactivating a staff account (rather than deleting it) should flip
+    // `active` to false and return the updated record to confirm the change.
     @Test
     void deactivate_asAdmin_returns200WithInactiveStatus() throws Exception {
         User deactivated = User.builder().id(2L).firstName("Front").lastName("Desk").email("staff@rentacar.com")

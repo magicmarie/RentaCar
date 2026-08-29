@@ -20,17 +20,23 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
+// Enables Mockito annotations (@Mock, @InjectMocks) without a full Spring context.
 @ExtendWith(MockitoExtension.class)
 class DashboardServiceTest {
 
+    // @Mock stubs the repositories backing the dashboard's summary queries.
     @Mock
     private VehicleRepository vehicleRepository;
     @Mock
     private ReservationRepository reservationRepository;
 
+    // @InjectMocks builds a real DashboardService wired with the mocks above.
     @InjectMocks
     private DashboardService dashboardService;
 
+    // Verifies the status breakdown always reports every VehicleStatus value,
+    // even ones with zero vehicles, so the dashboard UI doesn't need to
+    // special-case missing keys.
     @Test
     void vehicleCountsByStatus_countsEveryStatusIncludingZero() {
         List<Vehicle> vehicles = List.of(
@@ -48,6 +54,9 @@ class DashboardServiceTest {
         assertThat(counts.get("UNDER_MAINTENANCE")).isEqualTo(0L);
     }
 
+    // Verifies "active rentals" is defined as reservations in the
+    // CHECKED_OUT status, and that the service just passes that filter
+    // through to the repository rather than reimplementing filtering logic.
     @Test
     void activeRentals_delegatesToCheckedOutStatus() {
         Reservation checkedOut = Reservation.builder().id(1L).status(ReservationStatus.CHECKED_OUT).build();
@@ -58,10 +67,15 @@ class DashboardServiceTest {
         assertThat(result).containsExactly(checkedOut);
     }
 
+    // Verifies "upcoming reservations" queries only the still-pending
+    // statuses (PENDING/CONFIRMED) starting from today, matching what the
+    // dashboard should surface as work still ahead.
     @Test
     void upcomingReservations_queriesPendingAndConfirmedFromToday() {
         Reservation upcoming = Reservation.builder().id(2L).status(ReservationStatus.PENDING)
                 .startDate(LocalDate.now().plusDays(3)).build();
+        // anyList()/any(LocalDate.class) match whatever status list and cutoff date
+        // the service builds internally; we only care about the returned result here.
         when(reservationRepository.findUpcoming(anyList(), any(LocalDate.class))).thenReturn(List.of(upcoming));
 
         var result = dashboardService.upcomingReservations();

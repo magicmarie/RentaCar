@@ -19,7 +19,13 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// @DataJpaTest configures an in-memory-style test slice with only JPA-related
+// beans (repositories, entity manager) wired up, not the full app - faster than
+// @SpringBootTest and scoped to what these tests actually need. Each test runs in its
+// own transaction that is rolled back afterward, so fixtures created in setUp() never
+// leak between tests.
 @DataJpaTest
+// Loads the "dev" profile's datasource config for this test slice.
 @ActiveProfiles("dev")
 class ReservationRepositoryTest {
 
@@ -36,6 +42,10 @@ class ReservationRepositoryTest {
     private Vehicle otherVehicle;
     private User customer;
 
+    // Runs before every test to build a consistent baseline: a category, two
+    // vehicles, a customer, and one existing PENDING reservation (Sep 1-5) for
+    // `vehicle`. Individual tests then query against this known fixture. Names/plates are
+    // suffixed with System.nanoTime() to avoid unique-constraint collisions across runs.
     @BeforeEach
     void setUp() {
         Category category = categoryRepository.save(
@@ -61,6 +71,9 @@ class ReservationRepositoryTest {
                 .status(ReservationStatus.PENDING).build());
     }
 
+    // Verifies the overlap query correctly flags a requested range (Sep 3-7) that
+    // partially overlaps the existing reservation (Sep 1-5) - this is the core check that
+    // prevents double-booking a vehicle.
     @Test
     void findOverlapping_findsReservationWithOverlappingDateRange() {
         var result = reservationRepository.findOverlapping(vehicle.getId(),
@@ -70,6 +83,9 @@ class ReservationRepositoryTest {
         assertThat(result).hasSize(1);
     }
 
+    // Verifies dates that don't overlap the existing reservation are not
+    // flagged - guards against a too-broad query that would block legitimate,
+    // non-conflicting bookings.
     @Test
     void findOverlapping_ignoresNonOverlappingDateRange() {
         var result = reservationRepository.findOverlapping(vehicle.getId(),
@@ -79,6 +95,8 @@ class ReservationRepositoryTest {
         assertThat(result).isEmpty();
     }
 
+    // Verifies the overlap check is scoped to a single vehicle - the same dates
+    // used for a *different* vehicle must not be reported as a conflict.
     @Test
     void findOverlapping_ignoresDifferentVehicle() {
         var result = reservationRepository.findOverlapping(otherVehicle.getId(),
@@ -88,6 +106,9 @@ class ReservationRepositoryTest {
         assertThat(result).isEmpty();
     }
 
+    // Verifies only "blocking" statuses (e.g. PENDING/CONFIRMED/CHECKED_OUT) count
+    // as an overlap - a CANCELLED reservation still exists in the DB but must not
+    // prevent the same dates from being booked again.
     @Test
     void findOverlapping_ignoresStatusesNotInBlockingList() {
         var result = reservationRepository.findOverlapping(vehicle.getId(),
@@ -97,6 +118,9 @@ class ReservationRepositoryTest {
         assertThat(result).isEmpty();
     }
 
+    // Verifies the edge case where a requested range ends exactly on the start
+    // date of an existing reservation still counts as overlapping (i.e. the query's date
+    // comparison is inclusive) - an off-by-one here could let two bookings share a day.
     @Test
     void findOverlapping_matchesExactBoundaryDates() {
         // requested range ends exactly on the existing reservation's start date
@@ -107,6 +131,9 @@ class ReservationRepositoryTest {
         assertThat(result).hasSize(1);
     }
 
+    // Verifies the existence-check query (used as a fast pre-check before the
+    // full overlap query) correctly reports true when a blocking reservation exists for
+    // the vehicle.
     @Test
     void existsByVehicleIdAndStatusIn_trueWhenBlockingReservationExists() {
         boolean exists = reservationRepository.existsByVehicleIdAndStatusIn(vehicle.getId(),
@@ -115,6 +142,8 @@ class ReservationRepositoryTest {
         assertThat(exists).isTrue();
     }
 
+    // Verifies a customer's reservation list query is properly filtered by
+    // customer ID - without this, one customer could see another customer's bookings.
     @Test
     void findByCustomerIdOrderByStartDateDesc_returnsOnlyThatCustomersReservations() {
         var result = reservationRepository.findByCustomerIdOrderByStartDateDesc(customer.getId());

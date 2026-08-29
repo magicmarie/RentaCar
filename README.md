@@ -340,6 +340,7 @@ design of the system:
 - [Vision Document](Vision_Document_RentaCar.md)
 - [Use Case Descriptions](UseCaseDescription_RentaCar.md)
 - [System Architecture](SystemArchitecture_RentaCar.md)
+- [Code Structure](CodeStructure_RentaCar.md)
 - [Sequence Diagrams](SequenceDiagrams_RentaCar.md)
 - [Collaboration/VOPC Diagrams](CollaborationVOPCDiagrams_RentaCar.md)
 

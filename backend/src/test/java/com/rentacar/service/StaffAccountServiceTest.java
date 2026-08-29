@@ -21,17 +21,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+// Enables Mockito annotations (@Mock, @InjectMocks) without a full Spring context.
 @ExtendWith(MockitoExtension.class)
 class StaffAccountServiceTest {
 
+    // @Mock stubs out persistence and password hashing so account logic is
+    // tested in isolation from the database and real crypto.
     @Mock
     private UserRepository userRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    // @InjectMocks builds a real StaffAccountService wired with the mocks above.
     @InjectMocks
     private StaffAccountService staffAccountService;
 
+    // Verifies a staff account can't be created with an email already in use.
     @Test
     void create_rejectsDuplicateEmail() {
         var request = new StaffAccountRequest("Front", "Desk", "staff@rentacar.com", "password123");
@@ -43,6 +48,8 @@ class StaffAccountServiceTest {
         verify(userRepository, never()).save(any());
     }
 
+    // Verifies new staff accounts are created active, with the STAFF role,
+    // and store only the hashed password (never the plaintext).
     @Test
     void create_savesActiveStaffAccountWithEncodedPassword() {
         var request = new StaffAccountRequest("Front", "Desk", "staff@rentacar.com", "password123");
@@ -57,6 +64,8 @@ class StaffAccountServiceTest {
         assertThat(result.getPasswordHash()).isEqualTo("hashed");
     }
 
+    // Verifies a customer's id can't be looked up through the staff-account
+    // endpoint, keeping the two account types from leaking into each other.
     @Test
     void getById_throwsWhenUserIsNotStaff() {
         User customer = User.builder().id(5L).role(Role.CUSTOMER).build();
@@ -66,6 +75,8 @@ class StaffAccountServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
+    // Verifies updating a staff account only changes the name fields,
+    // leaving email (used for login) untouched.
     @Test
     void update_changesNameOnly() {
         User staff = User.builder().id(5L).role(Role.STAFF).firstName("Old").lastName("Name")
@@ -79,6 +90,9 @@ class StaffAccountServiceTest {
         assertThat(result.getEmail()).isEqualTo("staff@rentacar.com");
     }
 
+    // Verifies deactivating a staff account flips it inactive rather than
+    // deleting it, e.g. so the account can be re-enabled later and its
+    // history preserved.
     @Test
     void deactivate_setsActiveFalse() {
         User staff = User.builder().id(5L).role(Role.STAFF).active(true).build();

@@ -18,6 +18,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class BillingControllerTest extends AbstractControllerTest {
 
+    // Builds a minimal but fully-linked Bill -> Reservation -> Vehicle -> Category
+    // graph, since the controller/serializer touch fields across all of them.
     private Bill sampleBill() {
         Category economy = Category.builder().id(1L).name("Economy").dailyRate(new BigDecimal("40.00")).build();
         Vehicle vehicle = Vehicle.builder().id(1L).make("Toyota").model("Corolla").year(2022)
@@ -30,6 +32,10 @@ class BillingControllerTest extends AbstractControllerTest {
                 .generatedAt(LocalDateTime.now()).build();
     }
 
+    // The controller must tell the service whether the caller is staff/admin so it
+    // can decide whether to enforce "only the owning customer may view this bill".
+    // For a customer caller, that flag must be false, otherwise the ownership
+    // check the service performs would be silently skipped.
     @Test
     void getForReservation_passesIsStaffOrAdminFalse_forCustomer() throws Exception {
         when(billingService.getBillForReservation(eq(1L), any(), any(Boolean.class))).thenReturn(sampleBill());
@@ -42,6 +48,8 @@ class BillingControllerTest extends AbstractControllerTest {
         assertThat(flag.getValue()).isFalse();
     }
 
+    // Mirror of the test above: staff callers should be flagged as
+    // staff-or-admin so they can view bills that aren't their own.
     @Test
     void getForReservation_passesIsStaffOrAdminTrue_forStaff() throws Exception {
         when(billingService.getBillForReservation(eq(1L), any(), any(Boolean.class))).thenReturn(sampleBill());
@@ -54,6 +62,8 @@ class BillingControllerTest extends AbstractControllerTest {
         assertThat(flag.getValue()).isTrue();
     }
 
+    // If the service throws AccessDeniedException (e.g. a customer requesting
+    // someone else's bill), the controller must surface it as 403, not 500.
     @Test
     void getForReservation_serviceRejectsAccessToSomeoneElsesBill_returns403() throws Exception {
         when(billingService.getBillForReservation(eq(1L), any(), any(Boolean.class)))

@@ -22,17 +22,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+// Enables Mockito annotations (@Mock, @InjectMocks) without a full Spring context.
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceTest {
 
+    // @Mock stubs the repositories so category logic is tested without a real database.
     @Mock
     private CategoryRepository categoryRepository;
     @Mock
     private VehicleRepository vehicleRepository;
 
+    // @InjectMocks builds a real CategoryService wired with the mocks above.
     @InjectMocks
     private CategoryService categoryService;
 
+    // Verifies category names must be unique (case-insensitively), so two
+    // "Economy" categories can't be created by accident.
     @Test
     void create_rejectsDuplicateName() {
         var request = new CategoryRequest("Economy", new BigDecimal("40.00"));
@@ -44,6 +49,7 @@ class CategoryServiceTest {
         verify(categoryRepository, never()).save(any());
     }
 
+    // Verifies a category with a unique name is created and persisted as given.
     @Test
     void create_savesNewCategory() {
         var request = new CategoryRequest("Economy", new BigDecimal("40.00"));
@@ -56,6 +62,7 @@ class CategoryServiceTest {
         assertThat(result.getDailyRate()).isEqualByComparingTo("40.00");
     }
 
+    // Verifies updating a category's rate leaves other fields (like name) untouched.
     @Test
     void updateRate_changesOnlyDailyRate() {
         Category category = Category.builder().id(1L).name("Economy").dailyRate(new BigDecimal("40.00")).build();
@@ -68,6 +75,8 @@ class CategoryServiceTest {
         assertThat(result.getDailyRate()).isEqualByComparingTo("55.00");
     }
 
+    // Verifies a category can't be deleted while vehicles still reference it,
+    // which would otherwise orphan those vehicles' pricing.
     @Test
     void delete_rejectsWhenVehiclesAssigned() {
         Category category = Category.builder().id(1L).name("Economy").build();
@@ -80,6 +89,7 @@ class CategoryServiceTest {
         verify(categoryRepository, never()).delete(any());
     }
 
+    // Verifies deletion is allowed once no vehicles are assigned to the category.
     @Test
     void delete_succeedsWhenNoVehiclesAssigned() {
         Category category = Category.builder().id(1L).name("Economy").build();
@@ -91,6 +101,8 @@ class CategoryServiceTest {
         verify(categoryRepository).delete(category);
     }
 
+    // Verifies looking up a nonexistent category id fails clearly instead of
+    // returning null and causing a NullPointerException downstream.
     @Test
     void getById_throwsWhenMissing() {
         when(categoryRepository.findById(404L)).thenReturn(Optional.empty());

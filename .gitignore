@@ -1,2 +1,6 @@
 .vscode/
 .DS_Store
+
+# Personal deployment notes - not for the public repo
+DEPLOYMENT.md
+REDEPLOY.md

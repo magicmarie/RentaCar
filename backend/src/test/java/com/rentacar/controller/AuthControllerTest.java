@@ -15,6 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class AuthControllerTest extends AbstractControllerTest {
 
+    // Verifies a successful login returns the JWT and user role the frontend
+    // needs to authenticate subsequent requests and gate UI by role.
     @Test
     void login_returns200WithTokenOnSuccess() throws Exception {
         when(authService.login(any())).thenReturn(
@@ -30,6 +32,8 @@ class AuthControllerTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.role").value("CUSTOMER"));
     }
 
+    // Wrong username/password should surface as 401, not a generic 500 or 200
+    // with an error body, so clients can distinguish "bad login" reliably.
     @Test
     void login_returns401OnBadCredentials() throws Exception {
         when(authService.login(any())).thenThrow(new BadCredentialsException("bad"));
@@ -42,6 +46,8 @@ class AuthControllerTest extends AbstractControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // A malformed request (empty JSON body) should fail validation before it ever
+    // reaches authService, confirming bean-validation annotations are wired up.
     @Test
     void login_returns400OnMissingFields() throws Exception {
         mockMvc.perform(post("/api/auth/login")
@@ -50,6 +56,8 @@ class AuthControllerTest extends AbstractControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    // Happy-path registration: a well-formed new-customer payload should succeed
+    // and return a confirmation message body.
     @Test
     void register_returns200OnSuccess() throws Exception {
         mockMvc.perform(post("/api/auth/register")
@@ -62,6 +70,9 @@ class AuthControllerTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.message").exists());
     }
 
+    // Registering with an email that's already taken should map to 409 Conflict,
+    // confirming the controller translates this domain exception to the right
+    // HTTP status instead of leaking a 500.
     @Test
     void register_returns409OnDuplicateEmail() throws Exception {
         doThrow(new DuplicateResourceException("An account with this email already exists"))
@@ -76,6 +87,8 @@ class AuthControllerTest extends AbstractControllerTest {
                 .andExpect(status().isConflict());
     }
 
+    // Forgot-password should return 200 even for an email that doesn't exist in
+    // the system, so the endpoint can't be used to enumerate registered users.
     @Test
     void forgotPassword_alwaysReturns200() throws Exception {
         mockMvc.perform(post("/api/auth/forgot-password")
@@ -87,6 +100,8 @@ class AuthControllerTest extends AbstractControllerTest {
                 .andExpect(jsonPath("$.message").exists());
     }
 
+    // An expired or unrecognized reset token should be rejected as 422
+    // Unprocessable Entity rather than silently succeeding or 500ing.
     @Test
     void resetPassword_returns422OnInvalidToken() throws Exception {
         doThrow(new InvalidStateException("This reset link is invalid or has expired"))

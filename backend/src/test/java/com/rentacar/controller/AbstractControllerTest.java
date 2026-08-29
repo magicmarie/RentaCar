@@ -28,7 +28,12 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
  * identical {@code @WebMvcTest} + {@code @Import} + {@code @MockBean} signature,
  * Spring reuses a single cached context across all of them.
  */
+// @WebMvcTest boots only the web layer (controllers, filters, exception handlers)
+// for this slice, not the full app context, so tests start fast and stay focused
+// on HTTP behavior rather than service/repository wiring.
 @WebMvcTest
+// Pulls the real security config and JWT filter into the slice context so
+// role-based access rules are actually exercised, not bypassed by the test setup.
 @Import({SecurityConfig.class, JwtAuthFilter.class})
 abstract class AbstractControllerTest {
 
@@ -37,11 +42,15 @@ abstract class AbstractControllerTest {
     @Autowired
     protected ObjectMapper objectMapper;
 
+    // @MockBean replaces the real bean in the context with a Mockito mock, so the
+    // security filter chain can run without needing a real user store or JWT signing.
     @MockBean
     protected CustomUserDetailsService userDetailsService;
     @MockBean
     protected JwtService jwtService;
 
+    // Every service the controllers depend on is mocked here so each subclass
+    // only has to stub the calls relevant to the endpoint it's testing.
     @MockBean
     protected AuthService authService;
     @MockBean
@@ -61,6 +70,8 @@ abstract class AbstractControllerTest {
     @MockBean
     protected DashboardService dashboardService;
 
+    // Fixture helpers below build minimal User instances for each role, used
+    // together with as() to simulate "who is making this request" per test.
     protected User adminUser() {
         return User.builder().id(1L).email("admin@rentacar.com").firstName("System").lastName("Admin")
                 .role(Role.ADMIN).active(true).build();
