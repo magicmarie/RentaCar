@@ -389,20 +389,20 @@ session cannot access admin configuration. A deactivated staff account cannot lo
 
 | Step | User Actions | System Actions |
 |---|---|---|
-| 1 | The customer selects a start date, end date, and optionally a vehicle category | The system checks which vehicles in the fleet have no overlapping confirmed reservation for the given date range and are not "Under Maintenance", and returns the list of available vehicles with their category and daily rate. |
+| 1 | The customer selects a start date, end date, and optionally a vehicle category | The system checks which vehicles in the fleet have no overlapping Pending, Confirmed, or Checked-Out reservation for the given date range and are not "Under Maintenance", and returns the list of available vehicles with their category and daily rate. |
 
-**Business Rule:** Only vehicles with status "Available" and no overlapping reservation for the requested date range are returned.
+**Business Rule:** Only vehicles with status "Available" and no overlapping Pending, Confirmed, or Checked-Out reservation for the requested date range are returned.
 
 #### 6.2 Create Reservation
 
 | Step | User Actions | System Actions |
 |---|---|---|
-| 1 | The customer selects an available vehicle from the search results and requests to reserve it for the chosen date range | The system re-validates that the vehicle has no overlapping confirmed reservation for the requested dates. |
+| 1 | The customer selects an available vehicle from the search results and requests to reserve it for the chosen date range | The system re-validates that the vehicle has no overlapping Pending, Confirmed, or Checked-Out reservation for the requested dates. |
 | 2 | The system confirms availability | The system creates the reservation with status "Pending", associates it with the customer and vehicle, and returns a success message with the reservation details. If the vehicle was booked by another customer in the meantime, the system returns a message indicating the vehicle is no longer available for those dates. |
 
 **Postconditions:** The reservation is persisted with status "Pending".
 
-**Business Rule:** A vehicle cannot have two confirmed or pending reservations with overlapping date ranges (no double-booking). The end date must be after the start date.
+**Business Rule:** A vehicle cannot have two Pending, Confirmed, or Checked-Out reservations with overlapping date ranges (no double-booking) — a reservation is protected from the moment it's requested through the end of an active rental, not just once confirmed. The end date must be after the start date.
 
 #### 6.3 Cancel Reservation
 

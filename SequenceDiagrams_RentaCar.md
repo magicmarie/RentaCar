@@ -41,8 +41,8 @@ domain model.
 **Actor:** Customer
 **Preconditions:** Customer is authenticated and has already searched availability
 (flow 6.1) and is selecting a vehicle from the results.
-**Business rule realized:** A vehicle cannot have two overlapping confirmed/pending
-reservations (no double-booking).
+**Business rule realized:** A vehicle cannot have two overlapping Pending, Confirmed,
+or Checked-Out reservations (no double-booking).
 
 | Stereotype | Class | Role |
 |---|---|---|

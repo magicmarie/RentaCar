@@ -131,13 +131,13 @@ and customers.
 | 1 | The business manages a fleet of vehicles of different types | Vehicle inventory must be maintained in the system | High | Admin must be able to add, edit, or delete vehicles in the fleet database, including details such as make, model, year, category, and license plate | |
 | 2 | Vehicles belong to categories that determine pricing | Vehicle categories must be defined in the system | High | Admin must be able to add or delete vehicle categories (e.g., Economy, SUV, Luxury) and assign vehicles to a category | |
 | 3 | Different categories have different rental pricing | Rental rates must be defined per category | High | Admin must be able to set and update a daily rental rate for each vehicle category | |
-| 4 | Staff accounts must be managed | Only authorized staff should access admin functions | High | Admin must be able to create, update, or deactivate staff user accounts with appropriate roles | |
+| 4 | Staff accounts must be managed | Only authorized staff should access admin functions | High | Admin must be able to create, update, or deactivate staff user accounts. All staff accounts are provisioned with the Staff role; the Admin role itself is not self-service-assignable through this feature | |
 | **Reservations** | | | | | |
 | 5 | Customers need to see which vehicles are available for their dates | Real-time availability must be shown to the customer | High | The system must display available vehicles for a customer-specified date range, filtered by category | |
 | 6 | Customers want to reserve a vehicle online | Customers must be able to book a vehicle | High | Customers must be able to select an available vehicle and submit a reservation with a start date and end date after logging in | |
-| 7 | A vehicle cannot be rented to two customers at the same time | Double-booking must be prevented | High | The system must enforce availability constraints and reject any reservation that overlaps with an existing confirmed reservation for the same vehicle | |
+| 7 | A vehicle cannot be rented to two customers at the same time | Double-booking must be prevented | High | The system must enforce availability constraints and reject any reservation that overlaps with an existing Pending, Confirmed, or Checked-Out reservation for the same vehicle — not just Confirmed ones, so a vehicle is protected from the moment it's first requested through the end of its active rental | |
 | 8 | Customers may need to cancel a reservation | Cancellation must be supported | Medium | Customers must be able to cancel a pending reservation. Staff and admins must also be able to cancel on behalf of a customer | |
-| 9 | Staff process vehicle pick-ups | The start of a rental must be recorded | High | Staff must be able to confirm a reservation and mark a vehicle as checked out, recording the actual pick-up date and time | |
+| 9 | Staff process vehicle pick-ups | The start of a rental must be recorded | High | Staff must be able to check out a reservation directly (from Pending or Confirmed) — marking the vehicle as checked out and recording the actual pick-up date and time. There is no separate confirmation step prior to check-out | |
 | 10 | Staff process vehicle returns | The end of a rental must be recorded | High | Staff must be able to record a vehicle return, including the return date and any notes about the vehicle condition | |
 | **Customers** | | | | | |
 | 11 | Customers need a personal account to make reservations | Customer registration and login must be supported | High | Customers must be able to register with their personal details (name, email, driver's license number) and log in with a username and password | |
@@ -148,7 +148,7 @@ and customers.
 | **AI-Assisted Features** | | | | | |
 | 15 | Customers may not know which vehicle category best fits their trip | Customers need guidance choosing a suitable vehicle | Low | The system must recommend a vehicle to a customer based on simple inputs such as passenger count and budget, using rule-based filtering over available vehicles | |
 | **System** | | | | | |
-| 16 | All vehicles must be accounted for at all times | No vehicle should have an unknown status | High | The system must track vehicle status at all times: Available, Reserved, Rented, or Under Maintenance | |
+| 16 | All vehicles must be accounted for at all times | No vehicle should have an unknown status | High | The system must track vehicle status at all times: Available, Rented, or Under Maintenance. A Reserved state exists in the data model for future use but is not currently assigned by any workflow — a vehicle remains Available through the Pending/Confirmed reservation stages and only transitions at check-out | |
 | 17 | Admins need an overview of business activity | Summary reports are needed for decision-making | Low | The system must provide admins with a basic dashboard showing fleet status, active rentals, and upcoming reservations | |
 
 ### 4.4 Alternatives and Competition
@@ -200,6 +200,9 @@ and commercial alternatives do not offer.
   functions, and staff cannot access admin configuration.
 
 **Documentation**
-- The system must be accompanied by a user manual covering the admin, staff,
-  and customer workflows.
-- All code must be documented with inline comments where logic is non-obvious.
+- The project's `README.md` serves as the user-facing manual, covering setup,
+  the admin/staff/customer feature set, a role-permission matrix, and the full
+  API reference — in place of a separate standalone user manual document.
+- Code is documented with inline comments where logic is genuinely non-obvious;
+  coverage is strongest in the business-rule-heavy services (e.g. billing
+  calculation, the rule-based recommendation filter) and lighter elsewhere.

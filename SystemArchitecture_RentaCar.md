@@ -42,7 +42,7 @@ strongly influence the architecture:
 | Users authenticate; RBAC must separate Admin, Staff, and Customer functions | Security | Centralized authentication/authorization enforced at the API boundary, not duplicated per screen |
 | Customer pages must work on desktop and mobile browsers; no dedicated mobile app | Usability | A single responsive client (SPA) rather than separate native/mobile codebases |
 | No confirmed reservation may be lost due to a system error | Reliability | Transactional business/data layers backed by an ACID relational database |
-| Single rental location for the initial release; Java/Spring MVC/JPA on Tomcat; MySQL | Constraints (platform, scale) | A single deployable backend and single database is sufficient — no need for distributed/microservice complexity at this stage |
+| Single rental location for the initial release; Java/Spring MVC/JPA on Tomcat; a relational database | Constraints (platform, scale) | A single deployable backend and single database is sufficient — no need for distributed/microservice complexity at this stage. The relational database is MySQL in the `prod` profile, or file-backed H2 in the `dev` profile currently used for the live deployment |
 | Vehicle recommendation uses simple rule-based filtering, not an external AI service | Constraints | The recommendation logic lives inside the Reservation subsystem's business layer, not as a separate integrated service |
 
 ---
@@ -161,7 +161,7 @@ schema.
 | Business Logic | Plain Java service classes (POJOs) | Encapsulates business rules (no double-booking, billing calculation, recommendation filtering) independent of the web layer |
 | Data Access | Spring Data JPA repositories | Reduces DAO boilerplate while satisfying the Vision Document's JPA requirement |
 | ORM | Hibernate | Default JPA provider used with Spring Data JPA |
-| Database | MySQL | Matches the Vision Document's relational database requirement |
+| Database | MySQL (`prod` profile) / H2, file-backed (`dev` profile, currently what's deployed) | Satisfies the Vision Document's "relational database (e.g., MySQL)" requirement either way; MySQL is fully wired via a `prod` Spring profile, but the live deployment currently runs `dev`/H2 for cost reasons (Render's free tier has no persistent disk for a MySQL instance) — see DEPLOYMENT.md |
 | Deployment | Spring Boot with embedded Tomcat, packaged as an executable JAR | Matches the Vision Document's Spring Boot / embedded Tomcat requirement; no separate application server to install |
 
 ---
@@ -191,12 +191,15 @@ schema.
 For the initial release, all backend components are packaged into a single Spring
 Boot executable JAR with an embedded Tomcat instance, run directly on a server with a
 compatible Java runtime (`java -jar renta-car.jar`) — no separate application server
-installation or WAR deployment step is required. It connects to a single MySQL
-instance, which may run on the same host for development or a separate host in
-production. The React SPA is built into static assets and can be served either from
+installation or WAR deployment step is required. It connects to a single relational
+database instance: MySQL when run with the `prod` Spring profile, or a file-backed H2
+database when run with `dev` — the latter is what the current live deployment uses,
+since it removes the need for a separately hosted/paid database instance at this
+stage. The React SPA is built into static assets and can be served either from
 the same embedded Tomcat instance (as static resources) or from any static file host
 — the two are decoupled because all communication happens over the REST API, not
-server-rendered pages.
+server-rendered pages. In the current deployment the two are in fact split this way:
+the backend runs as a container and the SPA is served from a separate static host.
 
 ---
 

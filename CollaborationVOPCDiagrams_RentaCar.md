@@ -56,7 +56,7 @@ flowchart TB
     Ctrl["ReservationController<br/>«control»"]
     Veh["Vehicle<br/>«entity»"]
     Res["Reservation<br/>«entity»"]
-    Note1["Business rule check:<br/>no overlapping Pending/Confirmed<br/>reservation for this vehicle + dates<br/>(if/else on Ctrl active line)"]
+    Note1["Business rule check:<br/>no overlapping Pending/Confirmed/<br/>Checked-Out reservation for this<br/>vehicle + dates (if/else on Ctrl active line)"]
 
     Customer -->|"1: selectVehicleAndDates()"| UI
     UI -->|"1.1: createReservation(customerId, vehicleId, startDate, endDate)"| Ctrl
@@ -126,7 +126,7 @@ referenced only as `customerId`, since Customer Account Management is its own us
 
 | Business Rule (from SRS UC6.2) | Rule Type (slide 54) | Where Modeled |
 |---|---|---|
-| A vehicle cannot have two confirmed/pending reservations with overlapping dates (no double-booking) | A — simple: single if/else | `ReservationController`'s active line, step 1.1.2 → 1.1.3, matching the `alt` block in Lab 4 SD1 |
+| A vehicle cannot have two Pending/Confirmed/Checked-Out reservations with overlapping dates (no double-booking) | A — simple: single if/else | `ReservationController`'s active line, step 1.1.2 → 1.1.3, matching the `alt` block in Lab 4 SD1 |
 | The end date must be after the start date | A — simple: single if/else | Validated by `ReservationController` before the availability check (precondition on `createReservation`) |
 
 ---
